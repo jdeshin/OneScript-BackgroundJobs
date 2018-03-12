@@ -58,8 +58,9 @@
     <Compile Include="WebBackgroundJobsManager.cs" />
     <Compile Include="WebBackgroundJobsManagerImpl.cs" />
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
-    <Folder Include="OneScript\" />
+    <None Include="OneScript\OneScript.md" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
