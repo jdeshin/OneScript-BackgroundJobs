@@ -116,22 +116,22 @@ namespace OneScript.HttpServices
         public void WaitForCompletion(int? timeout = null)
         {
 
-            int delta = 1;
+            int delta = WebBackgroundJobsManager.CheckInterval;
+            long timeoutMs = 1000;
 
             if (timeout == null)
-            {
                 delta = 0;
-                timeout = 1;
-            }
+            else
+                timeoutMs = (long)(timeout * 1000);
 
-            int current = 0;
+            long current = 0;
 
             do
             {
-                System.Threading.Thread.Sleep(1000);
+                System.Threading.Thread.Sleep(WebBackgroundJobsManager.CheckInterval);
                 current += delta;       
 
-            } while (current < timeout && State == WebBackgroundJobStateImpl.Active);
+            } while (current < timeoutMs && State == WebBackgroundJobStateImpl.Active);
 
             System.IO.TextWriter logWriter;
 

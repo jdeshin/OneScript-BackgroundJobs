@@ -56,21 +56,21 @@ namespace OneScript.HttpServices
         [ContextMethod("ОжидатьЗавершения", "WaitForCompletion")]
         public void WaitForCompletion(ArrayImpl backgroundJobs, int? timeout = null)
         {
-            int delta = 1;
+            int delta = WebBackgroundJobsManager.CheckInterval;
+            long timeoutMs = 1000;
 
             if (timeout == null)
-            {
                 delta = 0;
-                timeout = 1;
-            }
+            else
+                timeoutMs = (long)(timeout * 1000);
 
-            int current = 0;
+            long current = 0;
             WebBackgroundJobImpl failedJob = null;
             WebBackgroundJobImpl notCompletedJob = null;
 
             do
             {
-                System.Threading.Thread.Sleep(1000);
+                System.Threading.Thread.Sleep(WebBackgroundJobsManager.CheckInterval);
                 current += delta;
 
                 notCompletedJob = null;
@@ -86,7 +86,7 @@ namespace OneScript.HttpServices
                     }
                 }
 
-            } while (current < timeout && notCompletedJob != null && failedJob == null);
+            } while (current < timeoutMs && notCompletedJob != null && failedJob == null);
 
             System.IO.TextWriter logWriter;
 

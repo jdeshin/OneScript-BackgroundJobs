@@ -14,6 +14,20 @@ namespace OneScript.HttpServices
     {
         static System.Collections.Hashtable jobsKeys = new System.Collections.Hashtable();
         static System.Collections.Hashtable jobs = new System.Collections.Hashtable();
+        public static int CheckInterval { get; set; }
+
+        static WebBackgroundJobsManager()
+        {
+            System.Collections.Specialized.NameValueCollection appSettings = System.Web.Configuration.WebConfigurationManager.AppSettings;
+            try
+            {
+                CheckInterval = Convert.ToInt32(appSettings["jobsCheckInterval"] ?? "1000");
+            }
+            catch
+            {
+                CheckInterval = 1000;
+            }
+        }
 
         public static void ExecuteJob(object stateInfo)
         {
