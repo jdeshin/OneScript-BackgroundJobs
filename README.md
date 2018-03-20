@@ -6,7 +6,7 @@
 
 Скомпилированные версии библиотеки можно загрузить по [ссылке](https://github.com/jdeshin/OneScript-BackgroundJobs/releases).
 Если Вы хотите самостоятельно скомпилировать библиотеку, необходимо скопировать dll файлы из дистрибутива OneScript в папку OneScript, проекта WebBackgroundJobs.
-Дистрибутив можно скачать по ссылке (http://oscript.io/downloads)[http://oscript.io/downloads].
+Дистрибутив можно скачать по ссылке http://oscript.io/downloads.
 
 ## Установка
 
