@@ -14,9 +14,10 @@ namespace OneScript.HttpServices
 {
     public static class WebBackgroundJobsManager
     {
-        static System.Collections.Hashtable jobsKeys = new System.Collections.Hashtable();
-        static System.Collections.Hashtable jobs = new System.Collections.Hashtable();
-        public static System.Collections.Hashtable Jobs
+        static System.Collections.Concurrent.ConcurrentDictionary<string, string> jobsKeys = new System.Collections.Concurrent.ConcurrentDictionary<string, string>();
+        static System.Collections.Concurrent.ConcurrentDictionary<Guid,WebBackgroundJob> jobs = new System.Collections.Concurrent.ConcurrentDictionary<Guid, WebBackgroundJob>();
+        
+        public static System.Collections.Concurrent.ConcurrentDictionary<Guid, WebBackgroundJob> Jobs
         {
             get
             {
@@ -42,28 +43,19 @@ namespace OneScript.HttpServices
         {
             WebBackgroundJob job = (WebBackgroundJob)stateInfo;
 
-            System.Collections.Hashtable syncJobsKeys;
-            syncJobsKeys = System.Collections.Hashtable.Synchronized(jobsKeys);
-
             if (job.Key != "" && job.Key != null)
             {
                 // Пробуем вставить в таблицу ключей
                 //, если вставка неудачна, значит фоновое задание уже выполняется
-
-                try
+                if (!jobsKeys.TryAdd(job.Key, job.Key))
                 {
-                    syncJobsKeys.Add(job.Key, job.Key);
-                }
-                catch (ArgumentException)
-                {
-                    // Такое значение уже есть в списке, не запускаем задание
-                    return;
+                    // Такое значение уже есть в списке, не запускаем задание?
+                    throw new RuntimeException("Фоновое задание с таким значением ключа уже выполняется");
                 }
             }
 
             // Заполняем значения работы и вставляем ее в список
-            System.Collections.Hashtable syncJobs = System.Collections.Hashtable.Synchronized(jobs);
-            syncJobs.Add(job.UUID, job);
+            jobs.TryAdd(job.UUID, job);
             job.Begin = DateTime.Now;
 
             try
@@ -98,14 +90,16 @@ namespace OneScript.HttpServices
 
                 try
                 {
-                    syncJobs.Remove(job.UUID);
+                    WebBackgroundJob outjob;
+                    jobs.TryRemove(job.UUID, out outjob);
                 }
                 catch {  /* Ничего не делаем*/}
 
                 try
                 {
-                    if (job.Key != null)
-                        syncJobsKeys.Remove(job.Key);
+                    string outStr;
+                    if (job.Key != null && job.Key != "")
+                        jobsKeys.TryRemove(job.Key, out outStr);
                 }
                 catch {  /* Ничего не делаем*/}
             }

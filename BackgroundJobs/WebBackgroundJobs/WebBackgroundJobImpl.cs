@@ -18,6 +18,13 @@ namespace OneScript.HttpServices
     public class WebBackgroundJobImpl : AutoContext<WebBackgroundJobImpl>
     {
         WebBackgroundJob _job;
+        public WebBackgroundJob Job
+        {
+            get
+            {
+                return _job;
+            }
+        }
 
         public WebBackgroundJobImpl(WebBackgroundJob job)
         {

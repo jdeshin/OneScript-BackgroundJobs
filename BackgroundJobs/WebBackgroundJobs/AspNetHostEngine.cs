@@ -39,12 +39,18 @@ namespace OneScript.HttpServices
                 return _cachingEnabled;
             }
         }
+
+        // Engine криво создается параллельно. Делаем семафор
+        static System.Threading.Semaphore _pool;
+
         // Список дополнительных сборок, которые надо приаттачить к движку. Могут быть разные расширения
         // web.config -> <appSettings> -> <add key="ASPNetHandler" value="attachAssembly"/> Сделано так для простоты. Меньше настроек - дольше жизнь :)
         static List<System.Reflection.Assembly> _assembliesForAttaching;
 
         static AspNetHostEngine()
         {
+            
+
             _assembliesForAttaching = new List<System.Reflection.Assembly>();
 
             System.Collections.Specialized.NameValueCollection appSettings = System.Web.Configuration.WebConfigurationManager.AppSettings;
@@ -53,7 +59,10 @@ namespace OneScript.HttpServices
 
             _cachingEnabled = (appSettings["cachingEnabled"] == "true");
             AspNetLog.Write(logWriter, "Start assemblies loading.");
-
+            AspNetLog.Write(logWriter, "init semaphore.");
+            _pool = new System.Threading.Semaphore(0, 1);
+            _pool.Release(1);
+            AspNetLog.Write(logWriter, "ok init semaphore.");
             foreach (string assemblyName in appSettings.AllKeys)
             {
                 if (appSettings[assemblyName] == "attachAssembly")
@@ -94,28 +103,38 @@ namespace OneScript.HttpServices
 
         public AspNetHostEngine()
         {
+            
+
             System.Collections.Specialized.NameValueCollection appSettings = System.Web.Configuration.WebConfigurationManager.AppSettings;
 
             // Инициализируем логгирование, если надо
             TextWriter logWriter = AspNetLog.Open(appSettings);
 
-            AspNetLog.Write(logWriter, "Start loading.");
+            AspNetLog.Write(logWriter, "Start loading. " + DateTime.Now.Ticks.ToString());
 
             if (appSettings == null)
                 AspNetLog.Write(logWriter, "appSettings is null");
 
             try
             {
+                AspNetLog.Write(logWriter, "Ожидаем блокировку");
+                _pool.WaitOne();
+                AspNetLog.Write(logWriter, "Перед созданием");
                 _hostedScript = new HostedScriptEngine();
                 // метод настраивает внутренние переменные у SystemGlobalContext
+                AspNetLog.Write(logWriter, "Перед установкой среды");
                 _hostedScript.SetGlobalEnvironment(new NullApplicationHost(), new NullEntryScriptSrc());
+                AspNetLog.Write(logWriter, "Перед инициализацией");
                 _hostedScript.Initialize();
+                AspNetLog.Write(logWriter, "После инициализации");
                 // Размещаем oscript.cfg вместе с web.config. Так наверное привычнее
                 _hostedScript.CustomConfig = appSettings["configFilePath"] ?? System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "oscript.cfg");
                 //_hostedScript.AttachAssembly(System.Reflection.Assembly.GetExecutingAssembly());
                 // Аттачим доп сборки. По идее должны лежать в Bin
+                AspNetLog.Write(logWriter, "Перед циклом сборок");
                 foreach (System.Reflection.Assembly assembly in _assembliesForAttaching)
                 {
+                    AspNetLog.Write(logWriter, "Перед аттачем сборки");
                     try
                     {
                         _hostedScript.AttachAssembly(assembly);
@@ -131,16 +150,17 @@ namespace OneScript.HttpServices
 
                 //Загружаем библиотечные скрипты aka общие модули
                 string libPath = ConvertRelativePathToPhysical(appSettings["commonModulesPath"]);
-
+                AspNetLog.Write(logWriter, "Начало загрузки общих модулей");
                 if (libPath != null)
                 {
                     string[] files = System.IO.Directory.GetFiles(libPath, "*.os");
-
+                    AspNetLog.Write(logWriter, "Получен список файлов");
                     foreach (string filePathName in files)
                     {
+                        AspNetLog.Write(logWriter, "Перед добавлением свойства");
                         _hostedScript.InjectGlobalProperty(System.IO.Path.GetFileNameWithoutExtension(filePathName), ValueFactory.Create(), true);
                     }
-
+                    AspNetLog.Write(logWriter, "Перед присвоением значений свойствам");
                     foreach (string filePathName in files)
                     {
                         try
@@ -167,13 +187,15 @@ namespace OneScript.HttpServices
             catch (Exception ex)
             {
                 // Возникла проблема при инициализации
-                AspNetLog.Write(logWriter, ex.Message);
+                AspNetLog.Write(logWriter, ex.ToString());
 
                 if (appSettings["handlerLoadingPolicy"] == "strict")
                     throw; // Must fail!
             }
             finally
             {
+                AspNetLog.Write(logWriter, "Снимаем блокировку.");
+                _pool.Release();
                 AspNetLog.Write(logWriter, "End loading.");
                 AspNetLog.Close(logWriter);
             }

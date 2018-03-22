@@ -133,21 +133,21 @@ namespace OneScript.HttpServices
 
             ArrayImpl result = new ArrayImpl();
 
-            foreach (object ci in WebBackgroundJobsManager.Jobs)
+            foreach (System.Collections.Generic.KeyValuePair<Guid, WebBackgroundJob> ci in WebBackgroundJobsManager.Jobs)
             {
                 bool shouldAdd = true;
 
                 foreach (KeyAndValueImpl cfi in filter)
                 {
                     if (
-                        (cfi.Key.AsString().ToLower() == "ключ" && cfi.Value.AsString() != ((WebBackgroundJobImpl)ci).Key)
-                        || (cfi.Key.AsString().ToLower() == "наименование" && cfi.Value.AsString() != ((WebBackgroundJobImpl)ci).Description)
-                        || (cfi.Key.AsString().ToLower() == "имяметода" && cfi.Value.AsString() != ((WebBackgroundJobImpl)ci).MethodName)
-                        || (cfi.Key.AsString().ToLower() == "начало" && cfi.Value.AsDate() != ((WebBackgroundJobImpl)ci).Begin)
-                        || (cfi.Key.AsString().ToLower() == "конец" && cfi.Value.AsDate() != ((WebBackgroundJobImpl)ci).End)
-                        || (cfi.Key.AsString().ToLower() == "состояние" && cfi.Value.AsNumber() != (int)((WebBackgroundJobImpl)ci).State)
-                        || (cfi.Key.AsString().ToLower() == "регламентноезадание")
-                        || (cfi.Key.AsString().ToLower() == "уникальныйидентификатор" && (GuidWrapper)cfi.Value != ((WebBackgroundJobImpl)ci).UUID)
+                           ( cfi.Key.AsString().ToLower() == "ключ" && cfi.Value.AsString() != ci.Value.Key )
+                        || ( cfi.Key.AsString().ToLower() == "наименование" && cfi.Value.AsString() != ci.Value.Description )
+                        || ( cfi.Key.AsString().ToLower() == "имяметода" && cfi.Value.AsString() != ci.Value.MethodName )
+                        || ( cfi.Key.AsString().ToLower() == "начало" && cfi.Value.AsDate() != ci.Value.Begin )
+                        || ( cfi.Key.AsString().ToLower() == "конец" && cfi.Value.AsDate() != ci.Value.End )
+                        || ( cfi.Key.AsString().ToLower() == "состояние" && cfi.Value.AsNumber() != (int)ci.Value.State )
+                        || ( cfi.Key.AsString().ToLower() == "регламентноезадание" )
+                        || ( cfi.Key.AsString().ToLower() == "уникальныйидентификатор" && ((GuidWrapper)cfi.Value).AsString() != ci.Value.UUID.ToString() )
                        )
                     {
                         shouldAdd = false;
@@ -156,7 +156,7 @@ namespace OneScript.HttpServices
                 }
                 
                 if (shouldAdd)
-                    result.Add((IValue)ci);
+                    result.Add(new WebBackgroundJobImpl(ci.Value));
             }
 
             return result;
@@ -166,10 +166,8 @@ namespace OneScript.HttpServices
         {
             ArrayImpl result = new ArrayImpl();
 
-            foreach (object ci in WebBackgroundJobsManager.Jobs)
-            {
-                result.Add((IValue)ci);
-            }
+            foreach (System.Collections.Generic.KeyValuePair<Guid, WebBackgroundJob> ci in WebBackgroundJobsManager.Jobs)
+                result.Add( new WebBackgroundJobImpl(ci.Value));
             
             return result;
         }
