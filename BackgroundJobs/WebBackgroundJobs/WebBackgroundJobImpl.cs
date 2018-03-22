@@ -106,11 +106,11 @@ namespace OneScript.HttpServices
         }
 
         [ContextProperty("УникальныйИдентификатор", "UUID")]
-        public Guid UUID
+        public GuidWrapper UUID
         {
             get
             {
-                return _job.UUID;
+                return new GuidWrapper(_job.UUID.ToString());
             }
         }
 

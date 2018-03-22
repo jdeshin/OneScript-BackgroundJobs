@@ -16,6 +16,13 @@ namespace OneScript.HttpServices
     {
         static System.Collections.Hashtable jobsKeys = new System.Collections.Hashtable();
         static System.Collections.Hashtable jobs = new System.Collections.Hashtable();
+        public static System.Collections.Hashtable Jobs
+        {
+            get
+            {
+                return jobs;
+            }
+        }
         public static int CheckInterval { get; set; }
 
         static WebBackgroundJobsManager()

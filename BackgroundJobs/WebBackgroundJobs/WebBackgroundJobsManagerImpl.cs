@@ -125,5 +125,53 @@ namespace OneScript.HttpServices
             throw (new Exception(exceptionString));
         }
 
+        [ContextMethod("ПолучитьФоновыеЗадания", "GetBackgroundJobs")]
+        public ArrayImpl GetBackgroundJobs(StructureImpl filter = null)
+        {
+            if (filter == null || filter == ValueFactory.Create())
+                return GetAllJobs();
+
+            ArrayImpl result = new ArrayImpl();
+
+            foreach (object ci in WebBackgroundJobsManager.Jobs)
+            {
+                bool shouldAdd = true;
+
+                foreach (KeyAndValueImpl cfi in filter)
+                {
+                    if (
+                        (cfi.Key.AsString().ToLower() == "ключ" && cfi.Value.AsString() != ((WebBackgroundJobImpl)ci).Key)
+                        || (cfi.Key.AsString().ToLower() == "наименование" && cfi.Value.AsString() != ((WebBackgroundJobImpl)ci).Description)
+                        || (cfi.Key.AsString().ToLower() == "имяметода" && cfi.Value.AsString() != ((WebBackgroundJobImpl)ci).MethodName)
+                        || (cfi.Key.AsString().ToLower() == "начало" && cfi.Value.AsDate() != ((WebBackgroundJobImpl)ci).Begin)
+                        || (cfi.Key.AsString().ToLower() == "конец" && cfi.Value.AsDate() != ((WebBackgroundJobImpl)ci).End)
+                        || (cfi.Key.AsString().ToLower() == "состояние" && cfi.Value.AsNumber() != (int)((WebBackgroundJobImpl)ci).State)
+                        || (cfi.Key.AsString().ToLower() == "регламентноезадание")
+                        || (cfi.Key.AsString().ToLower() == "уникальныйидентификатор" && (GuidWrapper)cfi.Value != ((WebBackgroundJobImpl)ci).UUID)
+                       )
+                    {
+                        shouldAdd = false;
+                        break;
+                    }
+                }
+                
+                if (shouldAdd)
+                    result.Add((IValue)ci);
+            }
+
+            return result;
+        }
+
+        ArrayImpl GetAllJobs()
+        {
+            ArrayImpl result = new ArrayImpl();
+
+            foreach (object ci in WebBackgroundJobsManager.Jobs)
+            {
+                result.Add((IValue)ci);
+            }
+            
+            return result;
+        }
     }
 }
