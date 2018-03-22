@@ -59,10 +59,8 @@ namespace OneScript.HttpServices
 
             _cachingEnabled = (appSettings["cachingEnabled"] == "true");
             AspNetLog.Write(logWriter, "Start assemblies loading.");
-            AspNetLog.Write(logWriter, "init semaphore.");
             _pool = new System.Threading.Semaphore(0, 1);
             _pool.Release(1);
-            AspNetLog.Write(logWriter, "ok init semaphore.");
             foreach (string assemblyName in appSettings.AllKeys)
             {
                 if (appSettings[assemblyName] == "attachAssembly")
@@ -117,24 +115,17 @@ namespace OneScript.HttpServices
 
             try
             {
-                AspNetLog.Write(logWriter, "Ожидаем блокировку");
                 _pool.WaitOne();
-                AspNetLog.Write(logWriter, "Перед созданием");
                 _hostedScript = new HostedScriptEngine();
                 // метод настраивает внутренние переменные у SystemGlobalContext
-                AspNetLog.Write(logWriter, "Перед установкой среды");
                 _hostedScript.SetGlobalEnvironment(new NullApplicationHost(), new NullEntryScriptSrc());
-                AspNetLog.Write(logWriter, "Перед инициализацией");
                 _hostedScript.Initialize();
-                AspNetLog.Write(logWriter, "После инициализации");
                 // Размещаем oscript.cfg вместе с web.config. Так наверное привычнее
                 _hostedScript.CustomConfig = appSettings["configFilePath"] ?? System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "oscript.cfg");
                 //_hostedScript.AttachAssembly(System.Reflection.Assembly.GetExecutingAssembly());
                 // Аттачим доп сборки. По идее должны лежать в Bin
-                AspNetLog.Write(logWriter, "Перед циклом сборок");
                 foreach (System.Reflection.Assembly assembly in _assembliesForAttaching)
                 {
-                    AspNetLog.Write(logWriter, "Перед аттачем сборки");
                     try
                     {
                         _hostedScript.AttachAssembly(assembly);
@@ -150,17 +141,14 @@ namespace OneScript.HttpServices
 
                 //Загружаем библиотечные скрипты aka общие модули
                 string libPath = ConvertRelativePathToPhysical(appSettings["commonModulesPath"]);
-                AspNetLog.Write(logWriter, "Начало загрузки общих модулей");
                 if (libPath != null)
                 {
                     string[] files = System.IO.Directory.GetFiles(libPath, "*.os");
-                    AspNetLog.Write(logWriter, "Получен список файлов");
                     foreach (string filePathName in files)
                     {
-                        AspNetLog.Write(logWriter, "Перед добавлением свойства");
                         _hostedScript.InjectGlobalProperty(System.IO.Path.GetFileNameWithoutExtension(filePathName), ValueFactory.Create(), true);
                     }
-                    AspNetLog.Write(logWriter, "Перед присвоением значений свойствам");
+
                     foreach (string filePathName in files)
                     {
                         try
@@ -194,7 +182,6 @@ namespace OneScript.HttpServices
             }
             finally
             {
-                AspNetLog.Write(logWriter, "Снимаем блокировку.");
                 _pool.Release();
                 AspNetLog.Write(logWriter, "End loading.");
                 AspNetLog.Close(logWriter);
