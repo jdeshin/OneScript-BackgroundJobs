@@ -40,9 +40,6 @@ namespace OneScript.HttpServices
             }
         }
 
-        // Engine криво создается параллельно. Делаем семафор
-        static System.Threading.Semaphore _pool;
-
         // Список дополнительных сборок, которые надо приаттачить к движку. Могут быть разные расширения
         // web.config -> <appSettings> -> <add key="ASPNetHandler" value="attachAssembly"/> Сделано так для простоты. Меньше настроек - дольше жизнь :)
         static List<System.Reflection.Assembly> _assembliesForAttaching;
@@ -59,8 +56,7 @@ namespace OneScript.HttpServices
 
             _cachingEnabled = (appSettings["cachingEnabled"] == "true");
             AspNetLog.Write(logWriter, "Start assemblies loading.");
-            _pool = new System.Threading.Semaphore(0, 1);
-            _pool.Release(1);
+
             foreach (string assemblyName in appSettings.AllKeys)
             {
                 if (appSettings[assemblyName] == "attachAssembly")
@@ -115,7 +111,6 @@ namespace OneScript.HttpServices
 
             try
             {
-                _pool.WaitOne();
                 _hostedScript = new HostedScriptEngine();
                 // метод настраивает внутренние переменные у SystemGlobalContext
                 _hostedScript.SetGlobalEnvironment(new NullApplicationHost(), new NullEntryScriptSrc());
@@ -182,7 +177,6 @@ namespace OneScript.HttpServices
             }
             finally
             {
-                _pool.Release();
                 AspNetLog.Write(logWriter, "End loading.");
                 AspNetLog.Close(logWriter);
             }

@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 
 using ScriptEngine.Machine;
 using ScriptEngine.Machine.Contexts;
@@ -16,7 +16,8 @@ namespace OneScript.HttpServices
     {
         static System.Collections.Concurrent.ConcurrentDictionary<string, string> jobsKeys = new System.Collections.Concurrent.ConcurrentDictionary<string, string>();
         static System.Collections.Concurrent.ConcurrentDictionary<Guid,WebBackgroundJob> jobs = new System.Collections.Concurrent.ConcurrentDictionary<Guid, WebBackgroundJob>();
-        
+        static System.Collections.Concurrent.ConcurrentQueue<AspNetHostEngine> engines;
+
         public static System.Collections.Concurrent.ConcurrentDictionary<Guid, WebBackgroundJob> Jobs
         {
             get
@@ -36,6 +37,17 @@ namespace OneScript.HttpServices
             catch
             {
                 CheckInterval = 1000;
+            }
+
+            engines = new System.Collections.Concurrent.ConcurrentQueue<AspNetHostEngine>();
+            int workerThreads = 0;
+            int completionPortThreads = 0;
+            ThreadPool.GetMaxThreads(out workerThreads, out completionPortThreads);
+
+            while(workerThreads > 0)
+            {
+                engines.Enqueue(new AspNetHostEngine());
+                workerThreads--;
             }
         }
 
@@ -57,10 +69,14 @@ namespace OneScript.HttpServices
             // Заполняем значения работы и вставляем ее в список
             jobs.TryAdd(job.UUID, job);
             job.Begin = DateTime.Now;
+            AspNetHostEngine engine = null;
 
             try
             {
-                AspNetHostEngine engine = new AspNetHostEngine();
+
+                if (!engines.TryDequeue(out engine))
+                    throw new RuntimeException("cannot deque engine");
+                
                 engine.CallCommonModuleProcedure(job.MethodName, job.ExecutionParameters);
                 job.State = BackgroundJobState.Completed;
                 job.ExecutionParameters = null;
@@ -87,6 +103,8 @@ namespace OneScript.HttpServices
             finally
             {
                 job.End = DateTime.Now;
+                if (engine != null)
+                    engines.Enqueue(engine);
 
                 try
                 {
